@@ -1,3 +1,30 @@
+// Функция для показа уведомлений
+function showNotification(message, type = 'error') {
+    const notification = document.createElement('div');
+    notification.classList.add('notification', type);
+    notification.textContent = message;
+
+    // Добавление уведомления на страницу
+    document.body.appendChild(notification);
+
+    // Показать уведомление с анимацией
+    setTimeout(() => {
+        notification.style.display = 'block';
+        notification.style.opacity = '1';
+    }, 100);
+
+    // Убираем уведомление через 3 секунды
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => {
+            notification.style.display = 'none';
+            document.body.removeChild(notification);
+        }, 300);
+    }, 3000);
+}
+
+// Добавляем обработку ошибок и уведомлений в формах
+
 document.addEventListener('DOMContentLoaded', function() {
     // Переключение вкладок
     const tabs = document.querySelectorAll('.tab'); // Все вкладки
@@ -32,12 +59,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const password = document.getElementById('loginPassword').value; // Получаем значение пароля
 
         if (!validateEmail(email)) { // Проверка формата email
-            showError('loginEmail');
+            showNotification('Пожалуйста, введите корректный email');
             return;
         }
 
         if (password.length <= 2) { // Проверка длины пароля
-            showError('loginPassword');
+            showNotification('Пароль должен быть не менее 3 символов');
             return;
         }
 
@@ -52,14 +79,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (response.ok) {
                 // Успешная авторизация
+                showNotification('Авторизация успешна!', 'success');
                 window.location.href = '/chat'; // Перенаправление на страницу чата
             } else {
                 const errorData = await response.json();
-                alert(errorData.detail || 'Ошибка входа'); // Вывод ошибки
+                showNotification(errorData.detail || 'Ошибка входа');
             }
         } catch (error) {
             console.error('Error:', error); // Лог ошибки в консоль
-            alert('Ошибка соединения с сервером');
+            showNotification('Ошибка соединения с сервером');
         }
     });
 
@@ -72,22 +100,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const passwordConfirm = document.getElementById('registerPasswordConfirm').value; // Подтверждение пароля
 
         if (!validateEmail(email)) { // Проверка формата email
-            showError('registerEmail');
+            showNotification('Пожалуйста, введите корректный email');
             return;
         }
 
         if (name.length < 2) { // Проверка минимальной длины имени
-            showError('registerName');
+            showNotification('Имя должно содержать минимум 3 символа');
             return;
         }
 
-        if (password.length < 6) { // Проверка длины пароля
-            showError('registerPassword');
+        if (password.length < 2) { // Проверка длины пароля
+            showNotification('Пароль должен быть не менее 3 символов');
             return;
         }
 
         if (password !== passwordConfirm) { // Проверка совпадения паролей
-            showError('registerPasswordConfirm');
+            showNotification('Пароли не совпадают');
             return;
         }
 
@@ -97,20 +125,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: {
                     'Content-Type': 'application/json', // Указываем, что данные в формате JSON
                 },
-                body: JSON.stringify({ email, name, password }) // Отправляем данные пользователя в формате JSON
+                body: JSON.stringify({ email, name, password, password_check: passwordConfirm }) // Отправляем данные пользователя в формате JSON
             });
 
             if (response.ok) {
                 // Успешная регистрация
-                alert('Регистрация успешна! Теперь вы можете войти.'); // Уведомление об успешной регистрации
+                showNotification('Регистрация успешна! Теперь вы можете войти.', 'success');
                 document.querySelector('[data-tab="login"]').click(); // Переключение на вкладку входа
             } else {
                 const errorData = await response.json();
-                alert(errorData.detail || 'Ошибка регистрации'); // Вывод ошибки
+                showNotification(errorData.detail || 'Ошибка регистрации');
             }
         } catch (error) {
             console.error('Error:', error); // Лог ошибки в консоль
-            alert('Ошибка соединения с сервером');
+            showNotification('Ошибка соединения с сервером');
         }
     });
 
@@ -118,21 +146,5 @@ document.addEventListener('DOMContentLoaded', function() {
     function validateEmail(email) {
         const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Регулярное выражение для проверки email
         return re.test(email); // Возвращает true, если формат email валиден
-    }
-
-    // Отображение ошибки для поля ввода
-    function showError(inputId) {
-        const input = document.getElementById(inputId); // Получаем элемент ввода по ID
-        const errorDiv = input.nextElementSibling; // Находим соседний элемент для отображения ошибки
-        input.classList.add('shake'); // Добавляем класс анимации "тряски"
-        errorDiv.style.display = 'block'; // Показываем сообщение об ошибке
-
-        setTimeout(() => {
-            input.classList.remove('shake'); // Убираем анимацию
-        }, 300);
-
-        input.addEventListener('input', () => {
-            errorDiv.style.display = 'none'; // Убираем сообщение об ошибке при вводе
-        }, { once: true });
     }
 });

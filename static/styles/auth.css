@@ -112,3 +112,30 @@ button:hover {
 .shake {
     animation: shake 0.3s ease-in-out;
 }
+
+/* Стиль для уведомлений */
+.notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #ff3333;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 5px;
+    font-size: 1rem;
+    display: none;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* Уведомление при ошибке */
+.notification.error {
+    background-color: #ff3333;
+}
+
+/* Уведомление при успехе */
+.notification.success {
+    background-color: #4CAF50;
+}

@@ -22,7 +22,7 @@ async def get_auth_page(request: Request):
     return templates.TemplateResponse("auth.html", {"request": request})
 
 
-@router.post('/register/')
+@router.post('/register')
 async def register_user(user_data: SUserRegister) -> dict:
     """
     Регистрация нового пользователя.
@@ -35,7 +35,7 @@ async def register_user(user_data: SUserRegister) -> dict:
     :raises UserAlreadyExistsException: Если пользователь с указанным email уже существует.
     :raises PasswordMismatchException: Если пароли не совпадают.
     """
-
+    print(user_data)
     user = await UserDAO.find_one_or_none(email=user_data.email)
 
     if user:
