@@ -2,8 +2,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Авторизация и Регистрация</title>
-    <link rel="stylesheet" type="text/css" href="{{ request.url_for('static', path='styles/auth.css')}}">
+    <title>Мини-чат: Вход и Регистрация</title>
+    <link rel="stylesheet" type="text/css" href="/static/styles/auth.css">
+</head>
 </head>
 <body>
 <div class="container">
@@ -11,52 +12,22 @@
         <div class="tab active" data-tab="login">Авторизация</div>
         <div class="tab" data-tab="register">Регистрация</div>
     </div>
-
-    <div class="form-container">
-        <div id="login" class="active">
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="loginEmail">Email</label>
-                    <input type="email" id="loginEmail" required>
-                    <div class="error">Пожалуйста, введите корректный email</div>
-                </div>
-                <div class="form-group">
-                    <label for="loginPassword">Пароль</label>
-                    <input type="password" id="loginPassword" required>
-                    <div class="error">Пароль должен быть не менее 3 символов</div>
-                </div>
-                <button type="submit">Войти</button>
-            </form>
-        </div>
-
-        <div id="register">
-            <form id="registerForm">
-                <div class="form-group">
-                    <label for="registerEmail">Email</label>
-                    <input type="email" id="registerEmail" required>
-                    <div class="error">Пожалуйста, введите корректный email</div>
-                </div>
-                <div class="form-group">
-                    <label for="registerName">Имя</label>
-                    <input type="text" id="registerName" required>
-                    <div class="error">Имя должно содержать минимум 3 символа</div>
-                </div>
-                <div class="form-group">
-                    <label for="registerPassword">Пароль</label>
-                    <input type="password" id="registerPassword" required>
-                    <div class="error">Пароль должен быть не менее 3 символов</div>
-                </div>
-                <div class="form-group">
-                    <label for="registerPasswordConfirm">Подтверждение пароля</label>
-                    <input type="password" id="registerPasswordConfirm" required>
-                    <div class="error">Пароли не совпадают</div>
-                </div>
-                <button type="submit">Зарегистрироваться</button>
-            </form>
-        </div>
+    <div class="content">
+        <form id="loginForm" class="form active">
+            <input type="email" placeholder="Email" required>
+            <input type="password" placeholder="Пароль" required>
+            <button id="loginButton" type="submit">Войти</button>
+        </form>
+        <form id="registerForm" class="form">
+            <input type="email" placeholder="Email" required>
+            <input type="text" placeholder="Имя" required>
+            <input type="password" placeholder="Пароль" required>
+            <input type="password" placeholder="Повторите пароль" required>
+            <button id="registerButton" type="submit">Зарегистрироваться</button>
+        </form>
     </div>
 </div>
 
-<script src="{{ request.url_for('static', path='js/auth.js') }}"></script>
+<script src="/static/js/auth.js"></script>
 </body>
 </html>

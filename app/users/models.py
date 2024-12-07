@@ -1,10 +1,10 @@
 from sqlalchemy import String, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 
-from database import Bace
+from database import Base
 
 
-class User(Bace):
+class User(Base):
     """
     Класс модели пользователя.
     """

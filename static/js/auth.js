@@ -1,150 +1,83 @@
-// Функция для показа уведомлений
-function showNotification(message, type = 'error') {
-    const notification = document.createElement('div');
-    notification.classList.add('notification', type);
-    notification.textContent = message;
+// Обработка кликов по вкладкам
+document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => showTab(tab.dataset.tab));
+});
 
-    // Добавление уведомления на страницу
-    document.body.appendChild(notification);
+// Функция отображения выбранной вкладки
+function showTab(tabName) {
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.form').forEach(form => form.classList.remove('active'));
 
-    // Показать уведомление с анимацией
-    setTimeout(() => {
-        notification.style.display = 'block';
-        notification.style.opacity = '1';
-    }, 100);
-
-    // Убираем уведомление через 3 секунды
-    setTimeout(() => {
-        notification.style.opacity = '0';
-        setTimeout(() => {
-            notification.style.display = 'none';
-            document.body.removeChild(notification);
-        }, 300);
-    }, 3000);
+    document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add('active');
+    document.getElementById(`${tabName}Form`).classList.add('active');
 }
 
-// Добавляем обработку ошибок и уведомлений в формах
+// Функция для валидации данных формы
+const validateForm = fields => fields.every(field => field.trim() !== '');
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Переключение вкладок
-    const tabs = document.querySelectorAll('.tab'); // Все вкладки
-    const forms = document.querySelectorAll('.form-container > div'); // Все формы
-
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const target = tab.dataset.tab; // Получение идентификатора связанной вкладки
-
-            // Обновление активной вкладки
-            tabs.forEach(t => t.classList.remove('active')); // Убираем активный класс со всех вкладок
-            tab.classList.add('active'); // Добавляем активный класс текущей вкладке
-
-            // Отображение активной формы
-            forms.forEach(form => {
-                form.classList.remove('active'); // Убираем активный класс у всех форм
-                if (form.id === target) { // Показываем только форму с соответствующим идентификатором
-                    form.classList.add('active');
-                }
-            });
+// Функция для отправки запросов
+const sendRequest = async (url, data) => {
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(data)
         });
-    });
 
-    // Валидация и отправка формы
-    const loginForm = document.getElementById('loginForm'); // Форма входа
-    const registerForm = document.getElementById('registerForm'); // Форма регистрации
+        const result = await response.json();
 
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); // Предотвращаем стандартное поведение формы
-
-        const email = document.getElementById('loginEmail').value; // Получаем значение email
-        const password = document.getElementById('loginPassword').value; // Получаем значение пароля
-
-        if (!validateEmail(email)) { // Проверка формата email
-            showNotification('Пожалуйста, введите корректный email');
-            return;
+        if (response.ok) {
+            alert(result.message || 'Операция выполнена успешно!');
+            return result;
+        } else {
+            alert(result.message || 'Ошибка выполнения запроса!');
+            return null;
         }
-
-        if (password.length <= 2) { // Проверка длины пароля
-            showNotification('Пароль должен быть не менее 3 символов');
-            return;
-        }
-
-        try {
-            const response = await fetch('/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json', // Указываем, что данные в формате JSON
-                },
-                body: JSON.stringify({ email, password }) // Отправляем email и пароль в формате JSON
-            });
-
-            if (response.ok) {
-                // Успешная авторизация
-                showNotification('Авторизация успешна!', 'success');
-                window.location.href = '/chat'; // Перенаправление на страницу чата
-            } else {
-                const errorData = await response.json();
-                showNotification(errorData.detail || 'Ошибка входа');
-            }
-        } catch (error) {
-            console.error('Error:', error); // Лог ошибки в консоль
-            showNotification('Ошибка соединения с сервером');
-        }
-    });
-
-    registerForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); // Предотвращаем стандартное поведение формы
-
-        const email = document.getElementById('registerEmail').value; // Получаем значение email
-        const name = document.getElementById('registerName').value; // Получаем имя
-        const password = document.getElementById('registerPassword').value; // Получаем пароль
-        const passwordConfirm = document.getElementById('registerPasswordConfirm').value; // Подтверждение пароля
-
-        if (!validateEmail(email)) { // Проверка формата email
-            showNotification('Пожалуйста, введите корректный email');
-            return;
-        }
-
-        if (name.length < 2) { // Проверка минимальной длины имени
-            showNotification('Имя должно содержать минимум 3 символа');
-            return;
-        }
-
-        if (password.length < 2) { // Проверка длины пароля
-            showNotification('Пароль должен быть не менее 3 символов');
-            return;
-        }
-
-        if (password !== passwordConfirm) { // Проверка совпадения паролей
-            showNotification('Пароли не совпадают');
-            return;
-        }
-
-        try {
-            const response = await fetch('/auth/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json', // Указываем, что данные в формате JSON
-                },
-                body: JSON.stringify({ email, name, password, password_check: passwordConfirm }) // Отправляем данные пользователя в формате JSON
-            });
-
-            if (response.ok) {
-                // Успешная регистрация
-                showNotification('Регистрация успешна! Теперь вы можете войти.', 'success');
-                document.querySelector('[data-tab="login"]').click(); // Переключение на вкладку входа
-            } else {
-                const errorData = await response.json();
-                showNotification(errorData.detail || 'Ошибка регистрации');
-            }
-        } catch (error) {
-            console.error('Error:', error); // Лог ошибки в консоль
-            showNotification('Ошибка соединения с сервером');
-        }
-    });
-
-    // Проверка формата email
-    function validateEmail(email) {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Регулярное выражение для проверки email
-        return re.test(email); // Возвращает true, если формат email валиден
+    } catch (error) {
+        console.error("Ошибка:", error);
+        alert('Произошла ошибка на сервере');
     }
+};
+
+// Функция для обработки формы
+const handleFormSubmit = async (formType, url, fields) => {
+    if (!validateForm(fields)) {
+        alert('Пожалуйста, заполните все поля.');
+        return;
+    }
+
+    const data = await sendRequest(url, formType === 'login'
+        ? {email: fields[0], password: fields[1]}
+        : {email: fields[0], name: fields[1], password: fields[2], password_check: fields[3]});
+
+    if (data && formType === 'login') {
+        window.location.href = '/chat';
+    }
+};
+
+// Обработка формы входа
+document.getElementById('loginButton').addEventListener('click', async (event) => {
+    event.preventDefault();
+
+    const email = document.querySelector('#loginForm input[type="email"]').value;
+    const password = document.querySelector('#loginForm input[type="password"]').value;
+
+    await handleFormSubmit('login', 'login/', [email, password]);
+});
+
+// Обработка формы регистрации
+document.getElementById('registerButton').addEventListener('click', async (event) => {
+    event.preventDefault();
+
+    const email = document.querySelector('#registerForm input[type="email"]').value;
+    const name = document.querySelector('#registerForm input[type="text"]').value;
+    const password = document.querySelectorAll('#registerForm input[type="password"]')[0].value;
+    const password_check = document.querySelectorAll('#registerForm input[type="password"]')[1].value;
+
+    if (password !== password_check) {
+        alert('Пароли не совпадают.');
+        return;
+    }
+
+    await handleFormSubmit('register', 'register/', [email, name, password, password_check]);
 });

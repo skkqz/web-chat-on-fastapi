@@ -1,3 +1,4 @@
+import logging
 import uuid
 from shutil import which
 
@@ -9,21 +10,16 @@ from database import async_session_maker
 
 
 class BaseDAO:
-    """
-    Базовый класс для запросов к бд.
-    """
-
     model = None
 
     @classmethod
-    async def find_one_or_none_by_id(cls, data_id: uuid):
+    async def find_one_or_none_by_id(cls, data_id: int):
         """
-        Асинхронно находит и возвращает один экземпляр модели по указанным критериям или None.
+        Найти один экземпляр модели по ID.
 
-        @:param data_id: Критерии фильтрации в виде идентификатора записи.
-        @:return: Экземпляр модели или None, если ничего не найдено.
+        :param data_id: Идентификатор записи.
+        :return: Экземпляр модели или None.
         """
-
         async with async_session_maker() as session:
             query = select(cls.model).filter_by(id=data_id)
             result = await session.execute(query)
@@ -32,12 +28,11 @@ class BaseDAO:
     @classmethod
     async def find_one_or_none(cls, **filter_by):
         """
-        Асинхронно находит и возвращает один экземпляр модели по указанным критериям или None.
+        Найти один экземпляр модели по фильтрам.
 
-        @param filter_by: Критерии фильтрации в виде именованных параметров.
-        @return: Экземпляр модели или None, если ничего не найдено.
+        :param filter_by: Фильтры для поиска.
+        :return: Экземпляр модели или None.
         """
-
         async with async_session_maker() as session:
             query = select(cls.model).filter_by(**filter_by)
             result = await session.execute(query)
@@ -46,12 +41,11 @@ class BaseDAO:
     @classmethod
     async def find_all(cls, **filter_by):
         """
-        Асинхронно находит и возвращает все экземпляры модели, удовлетворяющие указанным критериям.
+        Найти все экземпляры модели по фильтрам.
 
-        @:param filter_by: Критерии фильтрации в виде именованных параметров.
-        @:return: Список экземпляров модели.
+        :param filter_by: Фильтры для поиска.
+        :return: Список экземпляров модели.
         """
-
         async with async_session_maker() as session:
             query = select(cls.model).filter_by(**filter_by)
             result = await session.execute(query)
@@ -60,20 +54,87 @@ class BaseDAO:
     @classmethod
     async def add(cls, **values):
         """
-        Асинхронно создает новый экземпляр модели с указанными значениями.
+        Создать новый экземпляр модели.
 
-        @:param: values: Именованные параметры для создания нового экземпляра модели.
-        @:return: Созданный экземпляр модели.
+        :param values: Данные для создания.
+        :return: Созданный экземпляр модели.
         """
 
+        values['id'] = values.get('id', uuid.uuid4())
         async with async_session_maker() as session:
             async with session.begin():
                 new_instance = cls.model(**values)
                 session.add(new_instance)
-
                 try:
                     await session.commit()
                 except SQLAlchemyError as e:
                     await session.rollback()
-                    return e
+                    raise e
                 return new_instance
+
+    @classmethod
+    async def add_many(cls, instances: list[dict]):
+        """
+        Создать несколько экземпляров модели.
+
+        :param instances: Список данных для создания.
+        :return: Список созданных экземпляров модели.
+        """
+        async with async_session_maker() as session:
+            async with session.begin():
+                new_instances = [cls.model(**values) for values in instances]
+                session.add_all(new_instances)
+                try:
+                    await session.commit()
+                except SQLAlchemyError as e:
+                    await session.rollback()
+                    raise e
+                return new_instances
+
+    @classmethod
+    async def update(cls, filter_by, **values):
+        """
+        Обновить экземпляры модели по фильтрам.
+
+        :param filter_by: Фильтры для поиска.
+        :param values: Данные для обновления.
+        :return: Количество обновленных записей.
+        """
+        async with async_session_maker() as session:
+            async with session.begin():
+                query = (
+                    sqlalchemy_update(cls.model)
+                    .where(*[getattr(cls.model, k) == v for k, v in filter_by.items()])
+                    .values(**values)
+                    .execution_options(synchronize_session="fetch")
+                )
+                result = await session.execute(query)
+                try:
+                    await session.commit()
+                except SQLAlchemyError as e:
+                    await session.rollback()
+                    raise e
+                return result.rowcount
+
+    @classmethod
+    async def delete(cls, delete_all: bool = False, **filter_by):
+        """
+        Удалить экземпляры модели по фильтрам.
+
+        :param delete_all: Если True, удаляются все записи.
+        :param filter_by: Фильтры для удаления.
+        :return: Количество удаленных записей.
+        """
+        if delete_all is False and not filter_by:
+            raise ValueError("Необходимо указать фильтры для удаления.")
+
+        async with async_session_maker() as session:
+            async with session.begin():
+                query = sqlalchemy_delete(cls.model).filter_by(**filter_by)
+                result = await session.execute(query)
+                try:
+                    await session.commit()
+                except SQLAlchemyError as e:
+                    await session.rollback()
+                    raise e
+                return result.rowcount

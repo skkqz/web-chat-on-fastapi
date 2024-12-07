@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import APIRouter, Response
 from fastapi.requests import Request
 from fastapi.responses import HTMLResponse
@@ -6,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 from exceptions import UserAlreadyExistsException, IncorrectEmailOrPasswordException, PasswordMismatchException
 from app.users.auth import get_password_hash, authenticate_user, create_access_token
 from app.users.dao import UserDAO
-from app.users.schamas import SUserRegister, SUserAuth
+from app.users.schemas import SUserRegister, SUserAuth, SUserRead
 
 
 router = APIRouter(prefix='/auth', tags=['Auth'])
@@ -92,3 +94,16 @@ async def logout_user(response: Response) -> dict:
 
     response.delete_cookie(key='users_access_token')
     return {'message': 'Пользователь успешно вышел из системы'}
+
+
+@router.get('/users', response_model=List[SUserRead])
+async def get_users():
+    """
+    Получение списка пользователей.
+
+    :return: Список словарей с ID и именем пользователей.
+    """
+
+    users_all = await UserDAO.find_all()
+    return [{'id': user.id, 'name': user.name} for user in users_all]
+
