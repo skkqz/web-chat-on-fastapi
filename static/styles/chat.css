@@ -145,3 +145,8 @@ body, html {
         transform: translateY(-15px);
     }
 }
+
+.online-user {
+    color: green;
+    font-weight: bold;
+}

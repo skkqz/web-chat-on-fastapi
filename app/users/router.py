@@ -1,10 +1,14 @@
+from math import asinh
 from typing import List
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Response, Depends
 from fastapi.requests import Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from app.chat.router import active_connections
+from app.users.dependencies import get_current_user
+from app.users.models import User
 from exceptions import UserAlreadyExistsException, IncorrectEmailOrPasswordException, PasswordMismatchException
 from app.users.auth import get_password_hash, authenticate_user, create_access_token
 from app.users.dao import UserDAO
@@ -37,7 +41,7 @@ async def register_user(user_data: SUserRegister) -> dict:
     :raises UserAlreadyExistsException: Если пользователь с указанным email уже существует.
     :raises PasswordMismatchException: Если пароли не совпадают.
     """
-    print(user_data)
+
     user = await UserDAO.find_one_or_none(email=user_data.email)
 
     if user:
@@ -105,5 +109,24 @@ async def get_users():
     """
 
     users_all = await UserDAO.find_all()
-    return [{'id': user.id, 'name': user.name} for user in users_all]
+    # return [{'id': user.id, 'name': user.name} for user in users_all]
+    return [{'id': user.id, 'name': user.name, 'is_online': user.id in active_connections } for user in users_all]
 
+
+@router.get('/me', response_model=SUserRead, summary='Получить информацию о текущем пользователе')
+async def get_current_user_info(current_user: User = Depends(get_current_user)):
+    """
+    Получить информацию о текущем авторизованном пользователе.
+
+    Этот эндпоинт извлекает данные о пользователе, используя токен доступа,
+    и возвращает информацию о текущем пользователе.
+
+    :param current_user: Текущий пользователь, извлеченный из токена.
+    :return: Информация о текущем пользователе.
+    """
+    return {
+        "id": current_user.id,
+        "name": current_user.name,
+        "email": current_user.email,
+        "is_online": current_user.id in active_connections
+    }

@@ -10,9 +10,9 @@
 <div class="chat-container">
     <div class="user-list" id="userList">
         <!-- Добавляем фиксированный элемент "Избранное" -->
-        <div class="user-item" data-user-id="{{ user.id }}">
-            Избранное
-        </div>
+<!--        <div class="user-item" data-user-id="{{ user.id }}">-->
+<!--            <br>-->
+<!--        </div>-->
         <!-- Выводим остальных пользователей, исключая текущего пользователя -->
         {% for chat in users_all %}
             {% if chat.id != user.id %}
