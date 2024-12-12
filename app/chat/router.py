@@ -48,12 +48,14 @@ async def websocket_endpoint(websocket: WebSocket, user_id: uuid.UUID):
     await websocket.accept()
     # Сохраняем активное соединение для пользователя
     active_connections[user_id] = websocket
+    # await UserDAO.update_user_status(user_id=user_id, status=True)
     try:
         while True:
             # Просто поддерживаем соединение активным (1 секунда паузы)
             await asyncio.sleep(1)
     except WebSocketDisconnect:
         # Удаляем пользователя из активных соединений при отключении
+        # await UserDAO.update_user_status(user_id=user_id, status=False)
         active_connections.pop(user_id, None)
 
 
@@ -66,24 +68,34 @@ async def get_messages(user_id: uuid.UUID, current_user: User = Depends(get_curr
     return messages_sorted
 
 
-# Отправка сообщения от текущего пользователя
-@router.post("/messages", response_model=MessageCreateS)
+@router.post('/messages', response_model=MessageCreateS)
 async def send_message(message: MessageCreateS, current_user: User = Depends(get_current_user)):
-    # Добавляем новое сообщение в базу данных
+    """
+    Отправить сообщение пользователю.
+
+    :param message: Данные сообщения.
+    :param current_user: Текущий пользователь.
+    :return: Результат отправки сообщения.
+    """
+
     await MessageDAO.add(
         sender_id=current_user.id,
         content=message.content,
         recipient_id=message.recipient_id
     )
-    # Подготавливаем данные для отправки сообщения
+
     message_data = {
         'sender_id': str(current_user.id),
         'recipient_id': str(message.recipient_id),
-        'content': message.content,
+        'content': message.content
     }
-    # Уведомляем получателя и отправителя через WebSocket
+
     await notify_user(message.recipient_id, message_data)
     await notify_user(current_user.id, message_data)
 
-    # Возвращаем подтверждение сохранения сообщения
-    return {'recipient_id': message.recipient_id, 'content': message.content, 'status': 'ok', 'msg': 'Message saved!'}
+    return {
+        'recipient_id': message.recipient_id,
+        'content': message.content,
+        'status': 'ok',
+        'message': 'Сообщение сохранено'
+    }

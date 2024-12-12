@@ -124,9 +124,5 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
     :param current_user: Текущий пользователь, извлеченный из токена.
     :return: Информация о текущем пользователе.
     """
-    return {
-        "id": current_user.id,
-        "name": current_user.name,
-        "email": current_user.email,
-        "is_online": current_user.id in active_connections
-    }
+
+    return current_user

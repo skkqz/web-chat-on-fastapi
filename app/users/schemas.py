@@ -30,3 +30,5 @@ class SUserRead(BaseModel):
 
     id: uuid.UUID = Field(..., description='Идентификатор пользователя')
     name: str = Field(..., min_length=3, max_length=50, description='Имя, от 3 до 50 символов')
+    email: EmailStr = Field(..., description='Электронная почта')
+    online_status: bool = Field(..., description='Статус пользователя')

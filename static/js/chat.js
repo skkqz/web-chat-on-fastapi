@@ -2,7 +2,7 @@
 let selectedUserId = null;
 let socket = null;
 let messagePollingInterval = null;
-
+let currentUserId = null; // Убедимся, что объявление переменной происходит только один раз
 
 // Функция выхода из аккаунта
 async function logout() {
@@ -62,19 +62,15 @@ async function loadMessages(userId) {
 function connectWebSocket() {
     if (socket) socket.close();
 
-    //    socket = new WebSocket(`ws://${window.location.host}/chat/ws/${selectedUserId}`);
     socket = new WebSocket(`${window.location.protocol.replace("http", "ws")}//${window.location.host}/chat/ws/${selectedUserId}`);
 
-
     socket.onopen = () => console.log('WebSocket соединение установлено');
-
     socket.onmessage = (event) => {
         const incomingMessage = JSON.parse(event.data);
         if (incomingMessage.recipient_id === selectedUserId) {
             addMessage(incomingMessage.content, incomingMessage.recipient_id);
         }
     };
-
     socket.onclose = () => console.log('WebSocket соединение закрыто');
 }
 
@@ -131,6 +127,18 @@ function addUserClickListeners() {
 // Первоначальная настройка событий нажатия на пользователей
 addUserClickListeners();
 
+// Первоначальная настройка
+document.addEventListener('DOMContentLoaded', async () => {
+    const currentUserResponse = await fetch('/auth/me');
+    const currentUser = await currentUserResponse.json();
+
+    console.log(currentUser);
+    currentUserId = currentUser.id; // Присвоение значения единожды
+
+    fetchUsers(); // Загрузка списка пользователей
+    setInterval(fetchUsers, 10000); // Обновление каждые 10 секунд
+});
+
 // Обновление списка пользователей
 async function fetchUsers() {
     try {
@@ -147,11 +155,11 @@ async function fetchUsers() {
                 userElement.setAttribute('data-user-id', user.id);
                 userElement.textContent = user.name;
 
-                // Подсветка онлайн пользователей
-                if (user.is_online) {
-                    userElement.style.color = 'green';  // Зеленый, если онлайн
-                } else {
-                    userElement.style.color = 'black';  // Черный, если не онлайн
+                console.log('123');
+                console.log(userElement);
+
+                if (user.online_status) {
+                    userElement.classList.add('online-user');
                 }
 
                 userElement.onclick = (event) => {
@@ -165,28 +173,6 @@ async function fetchUsers() {
         console.error('Ошибка при загрузке списка пользователей:', error);
     }
 }
-
-//// Первоначальная настройка
-//document.addEventListener('DOMContentLoaded', async () => {
-//    const currentUserResponse = await fetch('/auth/me');
-//    const currentUser = await currentUserResponse.json();
-//    currentUserId = currentUser.id;
-//
-//    fetchUsers(); // Загрузка списка пользователей
-//    setInterval(fetchUsers, 10000); // Обновление каждые 10 секунд
-//});
-//
-//// Обработчики для кнопки отправки и ввода сообщения
-//document.getElementById('sendButton').onclick = sendMessage;
-//
-//document.getElementById('messageInput').onkeypress = async (e) => {
-//    if (e.key === 'Enter') {
-//        await sendMessage();
-//    }
-//};
-
-document.addEventListener('DOMContentLoaded', fetchUsers);
-setInterval(fetchUsers, 10000); // Обновление каждые 10 секунд
 
 // Обработчики для кнопки отправки и ввода сообщения
 document.getElementById('sendButton').onclick = sendMessage;
