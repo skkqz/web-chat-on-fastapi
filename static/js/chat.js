@@ -135,13 +135,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log(currentUser);
     currentUserId = currentUser.id; // Присвоение значения единожды
 
-    fetchUsers(); // Загрузка списка пользователей
-    setInterval(fetchUsers, 10000); // Обновление каждые 10 секунд
+    await fetchUsers(); // Загрузка списка пользователей
+    setInterval(async() => await fetchUsers(), 10000); // Обновление каждые 10 секунд
 });
 
 // Обновление списка пользователей
 async function fetchUsers() {
     try {
+        const response = await fetch('/auth/users')
         const response = await fetch('/auth/users');
         const users = await response.json();
         const userList = document.getElementById('userList');
