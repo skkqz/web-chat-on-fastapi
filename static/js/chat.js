@@ -145,31 +145,33 @@ addUserClickListeners();
 
 // Обновление списка пользователей
 async function fetchUsers() {
-    try {
-        const response = await fetch('/auth/users');
-        const users = await response.json();
-        const userList = document.getElementById('userList');
-
-        // Очищаем текущий список пользователей
-        userList.innerHTML = '';
-
-        // Генерация списка пользователей
-        users.forEach(user => {
-            if (user.id !== currentUserId) {
-                const userElement = document.createElement('div');
-                userElement.classList.add('user-item');
-                userElement.setAttribute('data-user-id', user.id);
-                userElement.textContent = user.name;
-                userList.appendChild(userElement);
-            }
-        });
-
-        // Повторно добавляем обработчики событий для каждого пользователя
-        addUserClickListeners();
-    } catch (error) {
-        console.error('Ошибка при загрузке списка пользователей:', error);
-    }
+  try {
+    const response = await fetch('/auth/users');
+    const users = await response.json();
+    const userList = document.getElementById('userList');
+    // Очищаем текущий список пользователей
+    userList.innerHTML = '';
+    // Генерация списка пользователей
+    users.forEach(user => {
+      if (user.id !== currentUserId) {
+        const userElement = document.createElement('div');
+        userElement.classList.add('user-item');
+        userElement.setAttribute('data-user-id', user.id);
+        userElement.textContent = user.name;
+        // Применение класса online для онлайн-пользователей
+        if (user.online_status) {
+          userElement.classList.add('online');
+        }
+        userList.appendChild(userElement);
+      }
+    });
+    // Повторно добавляем обработчики событий для каждого пользователя
+    addUserClickListeners();
+  } catch (error) {
+    console.error('Ошибка при загрузке списка пользователей:', error);
+  }
 }
+
 
 // События при загрузке страницы
 document.addEventListener('DOMContentLoaded', fetchUsers);

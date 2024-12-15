@@ -23,6 +23,7 @@ class UserDAO(BaseDAO):
                 if user:
                     user.online_status = status
                     await session.commit()
+                    return user
                 # query = select(cls.model).filter(cls.model.id == user_id)
                 # result = await session.execute(query)
                 # db_user = result.scalars().first()
@@ -40,7 +41,7 @@ class UserDAO(BaseDAO):
             return result.scalars().all()
 
     @classmethod
-    async def list_users(cls, user_id: uuid.UUID, **filter_by) -> User:
+    async def list_users(cls, user_id: uuid.UUID, **filter_by):
 
         async with async_session_maker() as session:
             query = select(cls.model).filter(cls.model.id != user_id)
