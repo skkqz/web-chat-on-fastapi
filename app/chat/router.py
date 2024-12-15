@@ -10,7 +10,7 @@ from app.users.dao import UserDAO
 from app.users.dependencies import get_current_user
 from app.users.models import User
 import asyncio
-import logging
+
 
 # Создаем экземпляр маршрутизатора с префиксом /chat и тегом "Chat"
 router = APIRouter(prefix='/chat', tags=['Chat'])
@@ -41,22 +41,41 @@ async def notify_user(user_id: uuid.UUID, message: dict):
         await websocket.send_json(message)
 
 
-# WebSocket эндпоинт для соединений
 @router.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: uuid.UUID):
-    # Принимаем WebSocket-соединение
+    # Принимаем соединение
     await websocket.accept()
-    # Сохраняем активное соединение для пользователя
+
+    # Устанавливаем статус "онлайн"
+    await UserDAO.update_user_status(user_id=user_id, status=True)
     active_connections[user_id] = websocket
-    # await UserDAO.update_user_status(user_id=user_id, status=True)
+
     try:
         while True:
-            # Просто поддерживаем соединение активным (1 секунда паузы)
-            await asyncio.sleep(1)
+            # Поддерживаем соединение
+            await websocket.receive_text()
     except WebSocketDisconnect:
-        # Удаляем пользователя из активных соединений при отключении
-        # await UserDAO.update_user_status(user_id=user_id, status=False)
+        # Устанавливаем статус "оффлайн" при разрыве соединения
+        await UserDAO.update_user_status(user_id=user_id, status=False)
         active_connections.pop(user_id, None)
+
+
+# # WebSocket эндпоинт для соединений
+# @router.websocket("/ws/{user_id}")
+# async def websocket_endpoint(websocket: WebSocket, user_id: uuid.UUID):
+#     # Принимаем WebSocket-соединение
+#     await websocket.accept()
+#     # Сохраняем активное соединение для пользователя
+#     active_connections[user_id] = websocket
+#     # await UserDAO.update_user_status(user_id=user_id, status=True)
+#     try:
+#         while True:
+#             # Просто поддерживаем соединение активным (1 секунда паузы)
+#             await asyncio.sleep(1)
+#     except WebSocketDisconnect:
+#         # Удаляем пользователя из активных соединений при отключении
+#         # await UserDAO.update_user_status(user_id=user_id, status=False)
+#         active_connections.pop(user_id, None)
 
 
 # Получение сообщений между двумя пользователями

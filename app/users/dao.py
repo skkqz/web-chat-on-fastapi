@@ -19,10 +19,30 @@ class UserDAO(BaseDAO):
 
         async with async_session_maker() as session:
             async with session.begin():
-                query = select(cls.model).filter(cls.model.id == user_id)
-                result = await session.execute(query)
-                db_user = result.scalars().first()
-                db_user.status = status
-                await session.commit()
-                await session.refresh(db_user)
-                return db_user
+                user = await session.get(User, user_id)
+                if user:
+                    user.online_status = status
+                    await session.commit()
+                # query = select(cls.model).filter(cls.model.id == user_id)
+                # result = await session.execute(query)
+                # db_user = result.scalars().first()
+                # db_user.status = status
+                # await session.commit()
+                # await session.refresh(db_user)
+                # return db_user
+
+    @classmethod
+    async def find_all_online_users(cls):
+        async with async_session_maker() as session:
+            result = await session.execute(
+                select(User).where(User.online_status == True)
+            )
+            return result.scalars().all()
+
+    @classmethod
+    async def list_users(cls, user_id: uuid.UUID, **filter_by) -> User:
+
+        async with async_session_maker() as session:
+            query = select(cls.model).filter(cls.model.id != user_id)
+            result = await session.execute(query)
+            return result.scalars().all()

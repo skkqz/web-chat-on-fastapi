@@ -1,8 +1,7 @@
-// Сохраняем текущий выбранный userId и WebSocket соединение
+// Глобальные переменные
 let selectedUserId = null;
 let socket = null;
 let messagePollingInterval = null;
-let currentUserId = null; // Убедимся, что объявление переменной происходит только один раз
 
 // Функция выхода из аккаунта
 async function logout() {
@@ -50,9 +49,12 @@ async function loadMessages(userId) {
         const messages = await response.json();
 
         const messagesContainer = document.getElementById('messages');
-        messagesContainer.innerHTML = messages
-            .map((message) => createMessageElement(message.content, message.recipient_id))
-            .join('');
+        messagesContainer.innerHTML = messages.map(message =>
+            createMessageElement(message.content, message.recipient_id)
+        ).join('');
+
+        // Прокрутка к последнему сообщению
+        scrollToBottom(messagesContainer);
     } catch (error) {
         console.error('Ошибка загрузки сообщений:', error);
     }
@@ -62,15 +64,21 @@ async function loadMessages(userId) {
 function connectWebSocket() {
     if (socket) socket.close();
 
-    socket = new WebSocket(`${window.location.protocol.replace("http", "ws")}//${window.location.host}/chat/ws/${selectedUserId}`);
+    socket = new WebSocket(`ws://${window.location.host}/chat/ws/${selectedUserId}`);
 
     socket.onopen = () => console.log('WebSocket соединение установлено');
+
     socket.onmessage = (event) => {
         const incomingMessage = JSON.parse(event.data);
         if (incomingMessage.recipient_id === selectedUserId) {
             addMessage(incomingMessage.content, incomingMessage.recipient_id);
+
+            // Прокрутка к последнему сообщению
+            const messagesContainer = document.getElementById('messages');
+            scrollToBottom(messagesContainer);
         }
     };
+
     socket.onclose = () => console.log('WebSocket соединение закрыто');
 }
 
@@ -80,16 +88,19 @@ async function sendMessage() {
     const message = messageInput.value.trim();
 
     if (message && selectedUserId) {
-        const payload = { recipient_id: selectedUserId, content: message };
+        const payload = {recipient_id: selectedUserId, content: message};
 
         try {
             await fetch('/chat/messages', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
             });
 
-            addMessage(message, selectedUserId);
+            // WebSocket отправляет сообщение, сервер обработает и вернет его клиенту
+            socket.send(JSON.stringify(payload));
+
+            // Убираем локальное добавление, так как WebSocket обработает это
             messageInput.value = '';
         } catch (error) {
             console.error('Ошибка при отправке сообщения:', error);
@@ -111,6 +122,11 @@ function createMessageElement(text, recipient_id) {
     return `<div class="message ${messageClass}">${text}</div>`;
 }
 
+// Прокрутка к последнему сообщению
+function scrollToBottom(container) {
+    container.scrollTop = container.scrollHeight;
+}
+
 // Запуск опроса новых сообщений
 function startMessagePolling(userId) {
     clearInterval(messagePollingInterval);
@@ -127,18 +143,6 @@ function addUserClickListeners() {
 // Первоначальная настройка событий нажатия на пользователей
 addUserClickListeners();
 
-// Первоначальная настройка
-document.addEventListener('DOMContentLoaded', async () => {
-    const currentUserResponse = await fetch('/auth/me');
-    const currentUser = await currentUserResponse.json();
-
-    console.log(currentUser);
-    currentUserId = currentUser.id; // Присвоение значения единожды
-
-    fetchUsers(); // Загрузка списка пользователей
-    setInterval(fetchUsers, 10000); // Обновление каждые 10 секунд
-});
-
 // Обновление списка пользователей
 async function fetchUsers() {
     try {
@@ -146,37 +150,33 @@ async function fetchUsers() {
         const users = await response.json();
         const userList = document.getElementById('userList');
 
-        userList.innerHTML = ''; // Очистка текущего списка пользователей
+        // Очищаем текущий список пользователей
+        userList.innerHTML = '';
 
-        users.forEach((user) => {
-            if (user.id !== currentUserId) { // Исключаем текущего пользователя
+        // Генерация списка пользователей
+        users.forEach(user => {
+            if (user.id !== currentUserId) {
                 const userElement = document.createElement('div');
                 userElement.classList.add('user-item');
                 userElement.setAttribute('data-user-id', user.id);
                 userElement.textContent = user.name;
-
-                console.log('123');
-                console.log(userElement);
-
-                if (user.online_status) {
-                    userElement.classList.add('online-user');
-                }
-
-                userElement.onclick = (event) => {
-                    selectUser(user.id, user.name, event);
-                };
-
                 userList.appendChild(userElement);
             }
         });
+
+        // Повторно добавляем обработчики событий для каждого пользователя
+        addUserClickListeners();
     } catch (error) {
         console.error('Ошибка при загрузке списка пользователей:', error);
     }
 }
 
+// События при загрузке страницы
+document.addEventListener('DOMContentLoaded', fetchUsers);
+setInterval(fetchUsers, 10000); // Обновление каждые 10 секунд
+
 // Обработчики для кнопки отправки и ввода сообщения
 document.getElementById('sendButton').onclick = sendMessage;
-
 document.getElementById('messageInput').onkeypress = async (e) => {
     if (e.key === 'Enter') {
         await sendMessage();

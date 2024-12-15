@@ -1,10 +1,11 @@
-from math import asinh
+import uuid
 from typing import List
 
 from fastapi import APIRouter, Response, Depends
 from fastapi.requests import Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from app.chat.router import active_connections
 from app.users.dependencies import get_current_user
@@ -101,16 +102,19 @@ async def logout_user(response: Response) -> dict:
 
 
 @router.get('/users', response_model=List[SUserRead])
-async def get_users():
+async def get_users(current_user: User = Depends(get_current_user)):
     """
     Получение списка пользователей.
 
     :return: Список словарей с ID и именем пользователей.
     """
 
-    users_all = await UserDAO.find_all()
-    # return [{'id': user.id, 'name': user.name} for user in users_all]
-    return [{'id': user.id, 'name': user.name, 'is_online': user.id in active_connections } for user in users_all]
+    # users_all = await UserDAO.find_all()
+    users_all = await UserDAO.list_users(user_id=current_user.id)
+    return [
+        {'id': user.id, 'name': user.name, 'email': user.email, 'online_status': user.online_status }
+        for user in users_all
+    ]
 
 
 @router.get('/me', response_model=SUserRead, summary='Получить информацию о текущем пользователе')
@@ -126,3 +130,12 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """
 
     return current_user
+
+
+@router.get("/users/status", response_model=List[SUserRead])
+async def get_users_status():
+    """
+    Возвращает всех пользователей с их статусом онлайн/оффлайн.
+    """
+    users = await UserDAO.find_all()
+    return [{"id": user.id, "name": user.name, "online_status": user.online_status} for user in users]
